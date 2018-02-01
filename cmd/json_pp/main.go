@@ -1,0 +1,37 @@
+package main
+
+import (
+	"encoding/json"
+	"flag"
+	"io"
+	"log"
+	"os"
+)
+
+func run(in io.Reader, out io.Writer, errOut io.Writer, args []string) int {
+	log.SetFlags(0)
+	log.SetOutput(errOut)
+
+	fs := flag.NewFlagSet("json_pp", flag.ExitOnError)
+	if err := fs.Parse(args[1:]); err != nil {
+		log.Print(err)
+		return 128
+	}
+
+	buffer := json.RawMessage{}
+	if err := json.NewDecoder(in).Decode(&buffer); err != nil {
+		log.Print(err)
+		return 1
+	}
+	enc := json.NewEncoder(out)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(buffer); err != nil {
+		log.Print(err)
+		return 1
+	}
+	return 0
+}
+
+func main() {
+	os.Exit(run(os.Stdin, os.Stdout, os.Stderr, os.Args))
+}
