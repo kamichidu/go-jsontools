@@ -16,6 +16,8 @@ func usageFunc(flgs *flag.FlagSet) func() {
 		w := flgs.Output()
 		fmt.Fprintln(w, "Usage:")
 		fmt.Fprintln(w, "  "+flgs.Name()+" [options] {fileA} {fileB}")
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Options:")
 		flgs.PrintDefaults()
 	}
 }

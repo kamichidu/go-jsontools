@@ -3,16 +3,29 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
 )
+
+func usageFunc(flgs *flag.FlagSet) func() {
+	return func() {
+		w := flgs.Output()
+		fmt.Fprintln(w, "Usage:")
+		fmt.Fprintln(w, "  "+flgs.Name()+" [options] {file}")
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Options:")
+		flgs.PrintDefaults()
+	}
+}
 
 func run(in io.Reader, out io.Writer, errOut io.Writer, args []string) int {
 	log.SetFlags(0)
 	log.SetOutput(errOut)
 
 	fs := flag.NewFlagSet("json_pp", flag.ExitOnError)
+	fs.Usage = usageFunc(fs)
 	if err := fs.Parse(args[1:]); err != nil {
 		log.Print(err)
 		return 128
