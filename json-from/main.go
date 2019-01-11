@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/mattn/go-colorable"
@@ -75,6 +76,25 @@ func toJSONCompatType(v interface{}) interface{} {
 	}
 }
 
+type Flusher interface {
+	Flush() error
+}
+
+func replaceExtension(name string, newExt string) string {
+	dir, file := filepath.Split(name)
+	ext := filepath.Ext(file)
+	file = strings.TrimSuffix(file, ext) + newExt
+	return filepath.Join(dir, file)
+}
+
+func flush(w io.Writer) error {
+	flusher, ok := w.(Flusher)
+	if !ok {
+		return nil
+	}
+	return flusher.Flush()
+}
+
 func run(in io.Reader, out io.Writer, errOut io.Writer, args []string) int {
 	log.SetFlags(0)
 	log.SetOutput(errOut)
@@ -83,6 +103,8 @@ func run(in io.Reader, out io.Writer, errOut io.Writer, args []string) int {
 	fs.Usage = usageFunc(fs)
 	format := fs.String("format", "yaml", fmt.Sprintf("read file as this format (choices: %s)", availableFormats.String()))
 	pretty := fs.Bool("pretty", false, "pretty json output")
+	autoOutName := fs.Bool("O", false, "write output to a file named as the input file replacing its extension to .json")
+	outName := fs.String("o", "", "write to file instead of stdout")
 	if err := fs.Parse(args[1:]); err != nil {
 		log.Print(err)
 		return 128
@@ -92,13 +114,17 @@ func run(in io.Reader, out io.Writer, errOut io.Writer, args []string) int {
 	} else if !availableFormats.IsValidFormat(*format) {
 		fs.Usage()
 		return 128
+	} else if *autoOutName && *outName != "" {
+		log.Print("-O and -o are exclusive flag")
+		return 128
 	}
+	inName := fs.Arg(0)
 
 	var r io.Reader
-	if filename := fs.Arg(0); filename == "-" {
+	if inName == "-" {
 		r = in
 	} else {
-		file, err := os.Open(filename)
+		file, err := os.Open(inName)
 		if err != nil {
 			log.Print(err)
 			return 1
@@ -118,13 +144,26 @@ func run(in io.Reader, out io.Writer, errOut io.Writer, args []string) int {
 		log.Print(err)
 		return 1
 	}
-	out = bufio.NewWriter(out)
-	defer func() {
-		if flusher, ok := out.(*bufio.Writer); ok {
-			flusher.Flush()
+
+	var w io.Writer
+	if *autoOutName {
+		*outName = replaceExtension(inName, ".json")
+	}
+	if *outName != "" {
+		file, err := os.Create(*outName)
+		if err != nil {
+			log.Print(err)
+			return 1
 		}
-	}()
-	je := json.NewEncoder(out)
+		defer file.Close()
+		w = file
+	} else {
+		w = out
+	}
+	w = bufio.NewWriter(w)
+	defer flush(w)
+
+	je := json.NewEncoder(w)
 	if *pretty {
 		je.SetIndent("", "  ")
 	}
