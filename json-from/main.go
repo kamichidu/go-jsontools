@@ -99,7 +99,7 @@ func run(in io.Reader, out io.Writer, errOut io.Writer, args []string) int {
 	log.SetFlags(0)
 	log.SetOutput(errOut)
 
-	fs := flag.NewFlagSet("json_from", flag.ExitOnError)
+	fs := flag.NewFlagSet("json-from", flag.ExitOnError)
 	fs.Usage = usageFunc(fs)
 	format := fs.String("format", "yaml", fmt.Sprintf("read file as this format (choices: %s)", availableFormats.String()))
 	pretty := fs.Bool("pretty", false, "pretty json output")

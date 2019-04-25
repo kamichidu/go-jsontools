@@ -24,7 +24,7 @@ func run(in io.Reader, out io.Writer, errOut io.Writer, args []string) int {
 	log.SetFlags(0)
 	log.SetOutput(errOut)
 
-	fs := flag.NewFlagSet("json_pp", flag.ExitOnError)
+	fs := flag.NewFlagSet("json-pp", flag.ExitOnError)
 	fs.Usage = usageFunc(fs)
 	if err := fs.Parse(args[1:]); err != nil {
 		log.Print(err)
